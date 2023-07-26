@@ -5,11 +5,11 @@ request_tiingo = httr::GET("https://api.tiingo.com/tiingo/fx/usdjpy/prices?start
 request_polygon = httr::GET("https://api.polygon.io/v2/aggs/ticker/C:USDJPY/range/4/hour/2022-07-21/2023-07-21?adjusted=true&sort=asc&limit=50000&apiKey=DaDI9JX6nlje9VmOLJG_4XJnlYHnMzGf")
 
 # TIINGO
-# request_char = rawToChar(request_tiingo$content)
-# 
-# request_json = jsonlite::fromJSON(request_char, flatten = TRUE)
-# 
-# df_tiingo = request_json
+request_char = rawToChar(request_tiingo$content)
+
+request_json = jsonlite::fromJSON(request_char, flatten = TRUE)
+
+df_tiingo = request_json
 
 # POLYGON
 request_char = rawToChar(request_polygon$content)

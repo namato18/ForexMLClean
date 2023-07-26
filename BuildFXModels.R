@@ -9,11 +9,12 @@ library(riingo)
 
 x = list.files(path = 'TiingoData/',full.names = TRUE)
 file.names = list.files('TiingoData/')
-file.names = str_replace(string = file.names, pattern = '//.csv', replacement = "")
-
+file.names = str_replace(string = file.names, pattern = '.csv', replacement = "")
 ls.files = lapply(x, read.csv)
 
-df = ls.files[[1]]
+for(i in 1:length(file.names)){
+  
+df = ls.files[[i]]
 
 df = df[,-1]
 
@@ -106,11 +107,21 @@ bst = xgboost(data = train,
               max.depth = 20,
               nrounds = 200,
               eta = 0.3,
-              verbose = TRUE)
+              verbose = FALSE)
 pred = predict(bst, test)
 
 compare = data.frame(cbind(outcome.test, pred))
+saveRDS(compare, file = paste0("bsts/","compare_",file.names[i],"_BreakL.rds"))
+
 compare$pred.value = 0
 compare$pred.value[compare$pred >= 0.5] = 1
 
 overall.accuracy = length(which(compare$outcome.test == compare$pred.value)) / nrow(compare) * 100
+
+pred.yes = compare[compare$pred.value == 1,]
+
+pred.yes.accuracy = length(which(pred.yes$outcome.test == pred.yes$pred.value)) / nrow(pred.yes) * 100
+
+saveRDS(bst, file = paste0("bsts/","bst_",file.names[i],"_BreakL.rds"))
+print(file.names[i])
+}
