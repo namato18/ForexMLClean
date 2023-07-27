@@ -68,9 +68,10 @@ ui <- dashboardPage(
                     infoBoxOutput("yesaccuracy", width = 6),
                     infoBoxOutput("totalnumber", width = 6),
                     infoBoxOutput("totalhits", width = 6)
-                    
-                    
-                    
+
+                ),
+                box(title = "Histogram of Predictions", solidHeader = TRUE, status = "danger",
+                  plotOutput("histogram")
                 )
               )
               
@@ -104,11 +105,14 @@ server <- function(input, output, session) {
     if(input$predict == "BreakH" | input$predict == "BreakL"){
       GetAccuracy(input$pair, input$predict, input$percentIncrease)
       RenderInfoBoxes(output)
+      output$histogram = renderPlot(hist(compare$pred))
     }else{
       GetAccuracy(input$pair, input$predict, input$percentIncrease)
       RenderInfoBoxes(output)
       
+      
     }
+    output$histogram = renderPlot(CreateHistogram())
     
     
   })
@@ -126,6 +130,7 @@ server <- function(input, output, session) {
       RenderInfoBoxes(output)
       
     }
+    output$histogram = renderPlot(CreateHistogram())
     
     
   })
@@ -133,6 +138,7 @@ server <- function(input, output, session) {
   observeEvent(input$percentIncrease, {
     GetAccuracy(input$pair, input$predict, input$percentIncrease)
     RenderInfoBoxes(output)
+    output$histogram = renderPlot(CreateHistogram())
     
     
   })

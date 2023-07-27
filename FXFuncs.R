@@ -6,7 +6,7 @@ GetAccuracy = function(filename, prediction, target){
   }else{
     compare = readRDS(paste0("bsts/compare_",filename,target,".rds"))
   }
-  
+  assign("compare",compare,.GlobalEnv)
   compare$pred.value = 0
   compare$pred.value[compare$pred >= 0.5] = 1
   
@@ -73,4 +73,14 @@ LivePlot = function(symbol){
   df_candle_plot = df_candle_plot %>% layout(title = paste0('Last 30 candles for ',toupper(pair)),
                                              xaxis = list(rangeslider = list(visible = F)))
   return(df_candle_plot)
+}
+
+##############################################################
+##############################################################
+##############################################################
+##############################################################
+##############################################################
+CreateHistogram = function(){
+  ggp = ggplot(compare, aes(x = pred)) + geom_histogram(fill="red", alpha=0.5, color="black")
+  return(ggp)
 }
