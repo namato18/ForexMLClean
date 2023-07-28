@@ -61,7 +61,7 @@ ui <- dashboardPage(
                     selectInput("predict","Select What to Predict", choices = list("Break High" = "BreakH",
                                                                                    "Break Low" = "BreakL",
                                                                                    "Percentage Increase" = "PercentageIncrease")),
-                    sliderInput("percentIncrease","Select a Target Percent Increase",min = 0.25, max = 2, step = 0.25, value = 1)
+                    sliderInput("percentIncrease","Select a Target Percent Increase",min = 0.05, max = 1, step = 0.05, value = 0.15)
                 ),
                 box(title = "Metrics", solidHeader = TRUE, status = "danger",
                     infoBoxOutput("overallaccuracy", width = 6),
@@ -83,10 +83,22 @@ ui <- dashboardPage(
                     selectInput("predictionType","Select What to Predict", choices = list("Break High" = "BreakH",
                                                                                    "Break Low" = "BreakL",
                                                                                    "Percentage Increase" = "PercentageIncrease")),
+                    sliderInput("predictionIncrease","Select a Target Percent Increase",min = 0.05, max = 1, step = 0.05, value = 0.15)
                     
                 ),
                 box(title = "Live Candle Chart", solidHeader = TRUE, status = "danger",
                     plotlyOutput('candlestickPlot')
+                ),
+                box(title = "Predict Current Candle", solidHeader = TRUE, status = "danger",
+                  actionBttn("predictConfidence",
+                             label = "Predict",
+                             style = "jelly",
+                             color = "danger",
+                             block = TRUE),
+                  br(),
+                  br(),
+                  infoBoxOutput("prediction", width = 12),
+                  
                 )
                 
               )
@@ -100,6 +112,7 @@ ui <- dashboardPage(
 # Define server logic
 server <- function(input, output, session) {
   disable("percentIncrease")
+  disable("predictionIncrease")
   
   observeEvent(input$pair, {
     if(input$predict == "BreakH" | input$predict == "BreakL"){
@@ -145,6 +158,22 @@ server <- function(input, output, session) {
   
   observeEvent(input$predictionPair, {
     output$candlestickPlot = renderPlotly(LivePlot(input$predictionPair))
+  })
+  
+  observeEvent(input$predictionType, {
+    if(input$predictionType == "BreakH" | input$predictionType == "BreakL"){
+      disable("predictionIncrease")
+    }else{
+      enable("predictionIncrease")
+    }
+  })
+  
+  observeEvent(input$predictConfidence, {
+    if(input$predictionType == "BreakH" | input$predictionType == "BreakL"){
+      predict.next(input$predictionPair, input$predictionType, output)
+    }else{
+      predict.next(input$predictionPair, input$predictionType, output, input$predictionIncrease)
+    }
   })
 }
 

@@ -13,7 +13,7 @@ file.names = str_replace(string = file.names, pattern = '.csv', replacement = ""
 ls.files = lapply(x, read.csv)
 
 for(i in 1:length(file.names)){
-  for(j in seq(from=0.25, to=2, by = 0.25)){
+  for(j in seq(from=0.05, to=1, by = 0.05)){
   
   df = ls.files[[i]]
   
@@ -59,6 +59,10 @@ for(i in 1:length(file.names)){
   outcome = outcome[-1]
   
   ###############################
+  ############################### NOW REMOVE PERCENT.CHANGE VALUE
+  df = df[,-1]
+  
+  ###############################
   ############################### REMOVE FIRST 20 ROWS AND FIRST 5 COLUMNS FOR INPUT. ALSO REMOVE LAST ROW
   df = df[-c(1:20,nrow(df)),-c(1:5)]
   outcome = outcome[-c(1:20, length(outcome))]
@@ -97,7 +101,7 @@ for(i in 1:length(file.names)){
   pred = predict(bst, test)
   
   compare = data.frame(cbind(outcome.test, pred))
-  saveRDS(compare, file = paste0("bsts/","compare_",file.names[i],j,".rds"))
+  saveRDS(compare, file = paste0("~/Desktop/R related/bsts/","compare_",file.names[i],j,".rds"))
   
   compare$pred.value = 0
   compare$pred.value[compare$pred >= 0.5] = 1
@@ -108,7 +112,7 @@ for(i in 1:length(file.names)){
   
   pred.yes.accuracy = length(which(pred.yes$outcome.test == pred.yes$pred.value)) / nrow(pred.yes) * 100
   
-  saveRDS(bst, file = paste0("bsts/","bst_",file.names[i],j,".rds"))
+  saveRDS(bst, file = paste0("~/Desktop/R related/bsts/","bst_",file.names[i],j,".rds"))
   print(file.names[i])
   }
 }

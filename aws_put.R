@@ -9,11 +9,11 @@ Sys.setenv(
 
 # AUTOMATED PUT TO AWS
 tic()
-x = list.files(path = 'C:/Users/xbox/Desktop/Rstuff/ForexMLClean/bsts')
+x = list.files(path = '~/Desktop/R related/bsts/')
 
 for(i in 1:length(x)){
   put_object(
-    file = file.path("C:/Users/xbox/Desktop/Rstuff/ForexMLClean/bsts", x[i]), 
+    file = file.path('~/Desktop/R related/bsts/', x[i]), 
     object = x[i], 
     bucket = "cryptomlbucket/FXCleanBoosts"
   )
