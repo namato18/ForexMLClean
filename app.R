@@ -156,25 +156,25 @@ server <- function(input, output, session) {
     
   })
   
-  observeEvent(input$predictionPair, {
-    output$candlestickPlot = renderPlotly(LivePlot(input$predictionPair))
-  })
-  
-  observeEvent(input$predictionType, {
-    if(input$predictionType == "BreakH" | input$predictionType == "BreakL"){
-      disable("predictionIncrease")
-    }else{
-      enable("predictionIncrease")
-    }
-  })
-  
-  observeEvent(input$predictConfidence, {
-    if(input$predictionType == "BreakH" | input$predictionType == "BreakL"){
-      predict.next(input$predictionPair, input$predictionType, output)
-    }else{
-      predict.next(input$predictionPair, input$predictionType, output, input$predictionIncrease)
-    }
-  })
+  # observeEvent(input$predictionPair, {
+  #   output$candlestickPlot = renderPlotly(LivePlot(input$predictionPair))
+  # })
+  # 
+  # observeEvent(input$predictionType, {
+  #   if(input$predictionType == "BreakH" | input$predictionType == "BreakL"){
+  #     disable("predictionIncrease")
+  #   }else{
+  #     enable("predictionIncrease")
+  #   }
+  # })
+  # 
+  # observeEvent(input$predictConfidence, {
+  #   if(input$predictionType == "BreakH" | input$predictionType == "BreakL"){
+  #     predict.next(input$predictionPair, input$predictionType, output)
+  #   }else{
+  #     predict.next(input$predictionPair, input$predictionType, output, input$predictionIncrease)
+  #   }
+  # })
 }
 
 # Run the application 

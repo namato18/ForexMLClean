@@ -2,11 +2,11 @@ Sys.setenv(TZ="UTC")
 
 GetAccuracy = function(filename, prediction, target){
   if(prediction == "BreakH" | prediction == "BreakL"){
-    # compare = readRDS(paste0("bsts/compare_",filename,"_",prediction,".rds"))
-    compare = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("compare_",filename,"_",prediction,".rds"))
+    compare = readRDS(paste0("~/Desktop/R related/bsts/compare_",filename,"_",prediction,".rds"))
+    # compare = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("compare_",filename,"_",prediction,".rds"))
   }else{
-    # compare = readRDS(paste0("bsts/compare_",filename,target,".rds"))
-    compare = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("compare_",filename,target,".rds"))
+    compare = readRDS(paste0("~/Desktop/R related/bsts/compare_",filename,target,".rds"))
+    # compare = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("compare_",filename,target,".rds"))
     
   }
   assign("compare",compare,.GlobalEnv)

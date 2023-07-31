@@ -36,14 +36,14 @@ for(k in 21:nrow(df)){
 
 ###############################
 ############################### DEFINE OTHER INPUT VALUES
-df$OH = (df$High - df$Open)/df$High * 100
-df$CH = (df$Close - df$Open)/ df$Close * 100
-df$LH = (df$High - df$Low) / df$High * 100
+df$OH = (df$High - df$Open)/df$Open * 100
+df$CH = (df$Close - df$Open)/ df$Open * 100
+df$LH = (df$High - df$Low) / df$Low * 100
 df$LC = (df$Close - df$Low) / df$Low * 100
 
-df$HMA = (df$High - df$MA20)/ df$High * 100
-df$LMA = (df$Low - df$MA20)/ df$Low * 100
-df$CMA = (df$Close - df$MA20)/ df$Close * 100
+df$HMA = (df$High - df$MA20)/ df$MA20 * 100
+df$LMA = (df$Low - df$MA20)/ df$MA20 * 100
+df$CMA = (df$Close - df$MA20)/ df$MA20 * 100
 
 ###############################
 ############################### DETERMINE OUTCOME VALUES
@@ -79,7 +79,7 @@ BreakH = BreakH[-c(1:20,length(BreakH))]
 
 ###############################
 ############################### ROUND ALL INPUTS TO 2 DIGITS
-df = round(df, 2)
+df = round(df, 4)
 
 ###############################
 ############################### BREAK DATA INTO TRAIN AND TEST SETS AND MAKE INTO MATRICES
@@ -101,6 +101,7 @@ outcome.test = outcome[!sample.split]
 
 ###############################
 ############################### CREATE XG BOOSTED MODLE
+set.seed(123)
 bst = xgboost(data = train,
               label = outcome.train,
               objective = "binary:logistic",
@@ -111,7 +112,7 @@ bst = xgboost(data = train,
 pred = predict(bst, test)
 
 compare = data.frame(cbind(outcome.test, pred))
-saveRDS(compare, file = paste0("bsts/","compare_",file.names[i],"_BreakL.rds"))
+saveRDS(compare, file = paste0("~/Desktop/R related/bsts/","compare_",file.names[i],"_BreakL.rds"))
 
 compare$pred.value = 0
 compare$pred.value[compare$pred >= 0.5] = 1
@@ -122,6 +123,6 @@ pred.yes = compare[compare$pred.value == 1,]
 
 pred.yes.accuracy = length(which(pred.yes$outcome.test == pred.yes$pred.value)) / nrow(pred.yes) * 100
 
-saveRDS(bst, file = paste0("bsts/","bst_",file.names[i],"_BreakL.rds"))
+saveRDS(bst, file = paste0("~/Desktop/R related/bsts/","bst_",file.names[i],"_BreakL.rds"))
 print(file.names[i])
 }
