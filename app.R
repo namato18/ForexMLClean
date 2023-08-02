@@ -15,6 +15,8 @@ library(flexdashboard)
 library(stringr)
 library(shinyjs)
 library(riingo)
+library(CandleStickPattern)
+library(xts)
 
 source("FXFuncs.R")
 
@@ -99,8 +101,12 @@ ui <- dashboardPage(
                   br(),
                   infoBoxOutput("prediction", width = 12),
                   
+                ),
+                box(title = "Predictions", solidHeader = TRUE, status = "danger",
+                    infoBoxOutput("predictBreakHigh", width = 6),
+                    infoBoxOutput("predictBreakLow", width = 6),
+                    infoBoxOutput("predictPercentChangeHigh", width = 6)
                 )
-                
               )
       )
     )
@@ -156,25 +162,26 @@ server <- function(input, output, session) {
     
   })
   
-  # observeEvent(input$predictionPair, {
-  #   output$candlestickPlot = renderPlotly(LivePlot(input$predictionPair))
-  # })
-  # 
-  # observeEvent(input$predictionType, {
-  #   if(input$predictionType == "BreakH" | input$predictionType == "BreakL"){
-  #     disable("predictionIncrease")
-  #   }else{
-  #     enable("predictionIncrease")
-  #   }
-  # })
-  # 
-  # observeEvent(input$predictConfidence, {
-  #   if(input$predictionType == "BreakH" | input$predictionType == "BreakL"){
-  #     predict.next(input$predictionPair, input$predictionType, output)
-  #   }else{
-  #     predict.next(input$predictionPair, input$predictionType, output, input$predictionIncrease)
-  #   }
-  # })
+  observeEvent(input$predictionPair, {
+    output$candlestickPlot = renderPlotly(LivePlot(input$predictionPair))
+  })
+
+  observeEvent(input$predictionType, {
+    if(input$predictionType == "BreakH" | input$predictionType == "BreakL"){
+      disable("predictionIncrease")
+    }else{
+      enable("predictionIncrease")
+    }
+  })
+
+  observeEvent(input$predictConfidence, {
+    predict.next(input$predictionPair, output)
+    predict.next.ohlc(input$predictionPair, output)
+    
+    shinyalert("Success",
+               "Predictions Successfully Generated!",
+               type = 'success')
+  })
 }
 
 # Run the application 
