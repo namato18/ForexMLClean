@@ -7,6 +7,8 @@ library(CandleStickPattern)
 library(dplyr)
 library(riingo)
 
+tic()
+
 x = list.files(path = 'TiingoData/',full.names = TRUE)
 file.names = list.files('TiingoData/')
 file.names = str_replace(string = file.names, pattern = '.csv', replacement = "")
@@ -16,6 +18,8 @@ for(i in 1:length(file.names)){
   for(j in seq(from=0.05, to=1, by = 0.05)){
   
   df = ls.files[[i]]
+  timeframe = str_match(string = file.names[i], pattern = "_(.*)")[,2]
+  
   
   df = df[,-1]
   
@@ -46,6 +50,27 @@ for(i in 1:length(file.names)){
   df$HMA = (df$High - df$MA20)/ df$MA20 * 100
   df$LMA = (df$Low - df$MA20)/ df$MA20 * 100
   df$CMA = (df$Close - df$MA20)/ df$MA20 * 100
+  
+  if(grepl(pattern = "day", x = timeframe)){
+    df$Date = as.POSIXct(df$Date, format = "%Y-%m-%d")
+  }else{
+    df$Date = as.POSIXct(df$Date, format = "%Y-%m-%d %H:%M:%S")
+  }
+  df.xts = as.xts(df)
+  UpTrend = as.data.frame(up.trend(df.xts))$`Up Trend`
+  DownTrend = as.data.frame(down.trend(df.xts))$`Down Trend`
+  
+  df$UpTrend = as.numeric(UpTrend)
+  df$DownTrend = as.numeric(DownTrend)
+  
+  Previous1 = rep(0, nrow(df))
+  Previous1[df$Close > df$Open] = 1
+  Previous2 = Lag(Previous1, 1)
+  Previous3 = Lag(Previous1, 2)
+  
+  df$Previous1 = Previous1
+  df$Previous2 = Previous2
+  df$Previous3 = Previous3
   
   ###############################
   ############################### DETERMINE OUTCOME VALUES
@@ -102,7 +127,7 @@ for(i in 1:length(file.names)){
   pred = predict(bst, test)
   
   compare = data.frame(cbind(outcome.test, pred))
-  saveRDS(compare, file = paste0("~/Desktop/R related/bsts/","compare_",file.names[i],j,".rds"))
+  saveRDS(compare, file = paste0("~/Desktop/R related/bsts-8-10-2023/","compare_",file.names[i],j,".rds"))
   
   compare$pred.value = 0
   compare$pred.value[compare$pred >= 0.5] = 1
@@ -113,7 +138,9 @@ for(i in 1:length(file.names)){
   
   pred.yes.accuracy = length(which(pred.yes$outcome.test == pred.yes$pred.value)) / nrow(pred.yes) * 100
   
-  saveRDS(bst, file = paste0("~/Desktop/R related/bsts/","bst_",file.names[i],j,".rds"))
+  saveRDS(bst, file = paste0("~/Desktop/R related/bsts-8-10-2023/","bst_",file.names[i],j,".rds"))
   print(file.names[i])
   }
 }
+
+toc()
