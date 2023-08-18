@@ -117,7 +117,7 @@ test = as.matrix(test)
 
 ###############################
 ############################### SET OUTPUT VALUE
-outcome = BreakH
+outcome = BreakL
 
 outcome.train = outcome[sample.split]
 outcome.test = outcome[!sample.split]
@@ -135,7 +135,7 @@ bst = xgboost(data = train,
 pred = predict(bst, test)
 
 compare = data.frame(cbind(outcome.test, pred))
-saveRDS(compare, file = paste0("../bsts-8-2-2023/","compare_",file.names[i],"_BreakH.rds"))
+saveRDS(compare, file = paste0("../bsts-8-18-2023/","compare_",file.names[i],"_BreakL.rds"))
 
 compare$pred.value = 0
 compare$pred.value[compare$pred >= 0.5] = 1
@@ -146,6 +146,6 @@ pred.yes = compare[compare$pred.value == 1,]
 
 pred.yes.accuracy = length(which(pred.yes$outcome.test == pred.yes$pred.value)) / nrow(pred.yes) * 100
 
-saveRDS(bst, file = paste0("../bsts-8-2-2023/","bst_",file.names[i],"_BreakH.rds"))
+saveRDS(bst, file = paste0("../bsts-8-18-2023/","bst_",file.names[i],"_BreakL.rds"))
 print(file.names[i])
 }

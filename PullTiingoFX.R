@@ -10,7 +10,8 @@ possibly_riingo_fx_prices = possibly(riingo_fx_prices, otherwise = "ERROR")
 
 ########################################## READ IN NAMES OF COINS WERE INTERESTED IN AND REMOVE BAD COINS
 ########################################## 
-tickers = c("EURUSD","GBPUSD","AUDUSD","USDJPY","USDCAD")
+# ticker1 = c("EURUSD","GBPUSD","AUDUSD","USDJPY","USDCAD")
+tickers = c("USDCHF","NZDUSD","EURGBP")
 
 ########################################## SET TIMEFRAMES
 ########################################## 

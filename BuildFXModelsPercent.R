@@ -102,7 +102,7 @@ for(i in 1:length(file.names)){
   pred = predict(bst, test)
   
   compare = data.frame(cbind(outcome.test, pred))
-  saveRDS(compare, file = paste0("~/Desktop/R related/bsts/","compare_",file.names[i],j,".rds"))
+  saveRDS(compare, file = paste0("../bsts-8-18-2023/","compare_",file.names[i],j,".rds"))
   
   compare$pred.value = 0
   compare$pred.value[compare$pred >= 0.5] = 1
@@ -113,7 +113,7 @@ for(i in 1:length(file.names)){
   
   pred.yes.accuracy = length(which(pred.yes$outcome.test == pred.yes$pred.value)) / nrow(pred.yes) * 100
   
-  saveRDS(bst, file = paste0("~/Desktop/R related/bsts/","bst_",file.names[i],j,".rds"))
+  saveRDS(bst, file = paste0("../bsts-8-18-2023/","bst_",file.names[i],j,".rds"))
   print(file.names[i])
   }
 }
