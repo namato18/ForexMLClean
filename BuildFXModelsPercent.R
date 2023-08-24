@@ -13,7 +13,7 @@ file.names = str_replace(string = file.names, pattern = '.csv', replacement = ""
 ls.files = lapply(x, read.csv)
 
 for(i in 1:length(file.names)){
-  for(j in seq(from=-1, to=-0.05, by = 0.05)){
+  for(j in seq(from=0.05, to=1, by = 0.05)){
   
   df = ls.files[[i]]
   timeframe = str_match(string = file.names[i], pattern = "_(.*)")[,2]
@@ -24,7 +24,7 @@ for(i in 1:length(file.names)){
   ###############################
   ############################### CHANGE NAMES
   colnames(df) = c("Date","Open","High","Low","Close")
-  df$Percent.Change = round((((df$High / df$Open) * 100) - 100), digits = 1)
+  df$Percent.Change = round((((df$High / df$Open) * 100) - 100), digits = 2)
   
   
   ###############################
@@ -86,10 +86,13 @@ for(i in 1:length(file.names)){
   
   ###############################
   ############################### REMOVE FIRST 20 ROWS AND FIRST 5 COLUMNS FOR INPUT. ALSO REMOVE LAST ROW
-  df = df[-c(1:20,nrow(df)),-c(1:5)]
+  df = df[-c(1:20,nrow(df)),]
   outcome = outcome[-c(1:20, length(outcome))]
   
+  saveRDS(df, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-8-21-2023/df_",file.names[i],".rds"))
+  saveRDS(outcome, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-8-21-2023/outcome_",file.names[i],j,".rds"))
   
+  df = df[,-c(1:5)]
   ###############################
   ############################### ROUND ALL INPUTS TO 2 DIGITS
   df = round(df, 2)
@@ -98,12 +101,16 @@ for(i in 1:length(file.names)){
   ############################### BREAK DATA INTO TRAIN AND TEST SETS AND MAKE INTO MATRICES
   set.seed(123)
   sample.split = sample(c(TRUE,FALSE), nrow(df), replace = TRUE, prob=c(0.8,0.2))
+  saveRDS(sample.split, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-8-21-2023/sample.split_",file.names[i],j,".rds"))
   
   train = df[sample.split,]
   test = df[!sample.split,]
   
   train = as.matrix(train)
   test = as.matrix(test)
+  
+  saveRDS(test, file = paste0("C:/Users/xbox/Desktop/Rstuff/bsts-8-21-2023/test_",file.names[i],j,".rds"))
+  
   
   ###############################
   ############################### SET OUTPUT VALUE
