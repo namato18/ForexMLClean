@@ -24,9 +24,9 @@ GetAccuracy = function(filename, prediction, target){
     false.neg = length(which(df$outcome.test == 1 & df$decision == 0))
     
     
-    precision = true.pos / (true.pos + false.pos) * 100
-    recall = true.pos / (true.pos + false.neg) * 100
-    f1 = 2*((precision * recall)/(precision + recall))
+    precision = round(true.pos / (true.pos + false.pos) * 100, digits = 2)
+    recall = round(true.pos / (true.pos + false.neg) * 100, digits = 2)
+    f1 = round(2*((precision * recall)/(precision + recall)) / 100, digits = 2)
     
     precision = round(precision, digits = 4)
     recall = round(recall, digits = 4)

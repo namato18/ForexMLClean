@@ -118,11 +118,7 @@ ui <- dashboardPage(
                        
                        box(title = "Prediction Inputs", solidHeader = TRUE, status = "danger", width = NULL,
                            selectInput("predictionPairSimple","Select a Currency Pair and Timeframe", choices = checkbox_list),
-                           actionBttn("predictConfidenceSimple",
-                                      label = "Predict",
-                                      style = "jelly",
-                                      color = "danger",
-                                      block = TRUE)
+                           actionButton("predictConfidenceSimple","Predict", icon = icon('chart-simple'), class = "btn-primary", style='padding:4px; width:100%')
                        ),
                        
                        box(title = "Predict Current Candle", solidHeader = TRUE, status = "danger",width = NULL,
@@ -141,11 +137,7 @@ ui <- dashboardPage(
                 column(width = 6,
                        box(title = "Prediction Inputs", solidHeader = TRUE, status = "danger", width = NULL,
                            selectInput("predictionPairDetail","Select a Currency Pair and Timeframe", choices = checkbox_list),
-                           actionBttn("predictConfidenceDetail",
-                                      label = "Predict",
-                                      style = "jelly",
-                                      color = "danger",
-                                      block = TRUE)
+                           actionButton("predictConfidenceDetail","Predict", icon = icon('chart-simple'), class = "btn-primary", style='padding:4px; width:100%')
                        ),
                        
                        box(title = "Predict High, Low, Close", solidHeader = TRUE, status = "danger",width = NULL,
@@ -268,7 +260,9 @@ server <- function(input, output, session) {
         valueBox(value = "Buy Signal",subtitle = "- The models are showing that buying at the beginning of this candle may prove proffitable.", icon = icon("arrow-trend-up"), color = "green")
       })
     }
-    
+    shinyalert("Success",
+               "Prediction Successfully Generated!",
+               type = 'success')
   })
   
   observeEvent(input$predictConfidenceDetail, {
@@ -323,10 +317,10 @@ server <- function(input, output, session) {
     }
     
     output$precision = renderValueBox({
-      valueBox(subtitle = "Precision",value = precision, icon = icon("check"), color = "green")
+      valueBox(subtitle = "Precision",value = paste0(precision, "%"), icon = icon("check"), color = "green")
     })
     output$recall = renderValueBox({
-      valueBox(subtitle = "recall",value = recall, icon = icon("check"), color = "green")
+      valueBox(subtitle = "recall",value = paste0(recall, "%"), icon = icon("check"), color = "green")
     })
     output$f1 = renderValueBox({
       valueBox(subtitle = "F1 Score",value = f1, icon = icon("check"), color = "green")
