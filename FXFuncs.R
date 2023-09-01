@@ -38,7 +38,9 @@ GetAccuracy = function(filename, prediction, target){
     assign("rmse",NULL,.GlobalEnv)
     assign("current.price",NULL,.GlobalEnv)
   }else{
-    compare = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("compare_",filename,"_",prediction,".rds"))
+    # compare = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("compare_",filename,"_",prediction,".rds"))
+    compare = readRDS(paste0("../bsts-8-31-2023/compare_",filename,"_",prediction,".rds"))
+    
     
     compare$error.sq = (compare$pred - compare$outcome.test)^2
     rmse = round((mean(compare$error.sq))^(1/2),digits = 5)
@@ -82,7 +84,7 @@ RenderInfoBoxes = function(output){
 ##############################################################
 ##############################################################
 ##############################################################
-LivePlot = function(symbol){
+LivePlot = function(symbol,type){
   pair = str_match(string = symbol, pattern = "(.*)_")[,2]
   timeframe = str_match(string = symbol, pattern = "_(.*)")[,2]
   
@@ -99,14 +101,37 @@ LivePlot = function(symbol){
   df2 = df2[,c(2,1,3:6)]
   
   df = rbind(df1,df2)
+  assign('df.date.grab',df,.GlobalEnv)
   
-  df_candle_plot = tail(df,30) %>%
-    plot_ly(x = ~date, type="candlestick",
-            open = ~open, close = ~close,
-            high = ~high, low = ~low)
-  df_candle_plot = df_candle_plot %>% layout(title = paste0('Last 30 candles for ',toupper(pair)),
+  fig = plot_ly()
+  
+  fig = add_trace(
+    fig,
+    data = tail(df,30),
+    x = ~date, type="candlestick",
+    open = ~open, close = ~close,
+    high = ~high, low = ~low
+  )
+  fig = fig %>% layout(title = paste0('Last 30 candles for ',toupper(pair)),
                                              xaxis = list(rangeslider = list(visible = F)))
-  return(df_candle_plot)
+  if(type == "simple"){
+    return(fig)
+  }else{
+    i <- list(line = list(color = 'blue'))
+    d <- list(line = list(color = 'orange'))
+    
+    fig = add_trace(
+      fig,
+      data = overlay.comb,
+      x = ~date, type="candlestick",
+      open = ~open, close = ~close,
+      high = ~high, low = ~low,
+      increasing = i, decreasing = d
+    )
+    return(fig)
+  }
+
+
 }
 
 ##############################################################
@@ -145,12 +170,12 @@ predict.next = function(symbol, output, target = 0.25, type){
   # for(i in 1:length(predictions)){
   #   prediction = predictions[i]
     
-    # symbol = "AUDUSD_1day"
-    # prediction = "BreakL"
-    # pair = "AUDUSD"
-    # timeframe = "1day"
+    symbol = "AUDUSD_1day"
+    prediction = "BreakL"
+    pair = "AUDUSD"
+    timeframe = "1day"
     
-    df1 = riingo_fx_prices(pair, start_date = Sys.Date() - 30, end_date = Sys.Date(), resample_frequency = timeframe)
+    df1 = riingo_fx_prices(pair, start_date = Sys.Date() - 100, end_date = Sys.Date(), resample_frequency = timeframe)
     df1 = df1[-nrow(df1),]
     df2 = httr::GET(paste0("https://api.tiingo.com/tiingo/fx/",pair,"/prices?resampleFreq=",timeframe,"&token=6fbd6ce7c9e035489f6238bfab127fcedbe34ac2"))
     request_char = rawToChar(df2$content)
@@ -248,14 +273,18 @@ predict.next = function(symbol, output, target = 0.25, type){
     BreakL = BreakL[-1]
     
     ###############################
-    ############################### REMOVE FIRST 20 ROWS AND FIRST 5 COLUMNS FOR INPUT. ALSO REMOVE LAST ROW
-    df = df[-c(1:20,nrow(df)),]
+    ############################### REMOVE FIRST 20 ROWS AND FIRST 5 COLUMNS FOR INPUT. ALSO GET LAST ROW
+    
+    # df = df[-c(1:20,nrow(df)),]
+    df.overlay.wdate = df[(nrow(df)-15):(nrow(df)-1),]
+    
     df = df[nrow(df)-1,]
     
     prev.high.perc = round((df$High - df$Open) / df$Open * 100, digits = 3)
     prev.low.perc = round((df$Low - df$Open) / df$Open * 100, digits = 3)
     
     df = df[,-c(1:5)]
+    df.overlay = df.overlay.wdate[,-c(1:5)]
     
     BreakL = BreakL[-c(1:20,length(BreakL))]
     BreakH = BreakH[-c(1:20,length(BreakH))]
@@ -267,10 +296,13 @@ predict.next = function(symbol, output, target = 0.25, type){
     
     
     df = as.matrix(df)
+    df.m.overlay = as.matrix(df.overlay)
     assign('df',df,.GlobalEnv)
+    
     
     bst.BH = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("bst_",symbol,"_","BreakH",".rds"))
     bst.BL = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("bst_",symbol,"_","BreakL",".rds"))
+    bst.25 = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("bst_",symbol,"0.25.rds"))
     bst.target = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("bst_",symbol,target,".rds"))
     # assign("bst",bst,.GlobalEnv)
     
@@ -279,6 +311,12 @@ predict.next = function(symbol, output, target = 0.25, type){
     pred.BL = round(predict(bst.BL, df), digits = 3)
     pred.target = round(predict(bst.target, df), digits = 3)
     
+    pred.BH.overlay = round(predict(bst.BH, df.m.overlay), digits = 3)
+    pred.BL.overlay = round(predict(bst.BL, df.m.overlay), digits = 3)
+    pred.25.overlay = round(predict(bst.25, df.m.overlay), digits = 3)
+    
+    prev.low.overlay = df.overlay.wdate$Low
+    prev.high.overlay = df.overlay.wdate$High
     
     # assign(paste0("pred_",prediction),pred,.GlobalEnv)
     
@@ -288,6 +326,13 @@ predict.next = function(symbol, output, target = 0.25, type){
         text.bl = paste0(pred.BL," (Previous Low of ",round(prev.low.perc,digits = 3),"%)")
         assign("text.bl",text.bl,.GlobalEnv)
         assign("text.perc25",pred.target,.GlobalEnv)
+        
+        assign("pred.BH.overlay",pred.BH.overlay,.GlobalEnv)
+        assign("pred.BL.overlay",pred.BL.overlay,.GlobalEnv)
+        assign("pred.25.overlay", pred.25.overlay,.GlobalEnv)
+        
+        assign("prev.low.overlay",prev.low.overlay,.GlobalEnv)
+        assign("prev.high.overlay",prev.high.overlay,.GlobalEnv)
     }else{
         assign("bh.pred.simple",pred.BH,.GlobalEnv)
         assign("bl.pred.simple",pred.BL,.GlobalEnv)
@@ -333,6 +378,7 @@ predict.next.ohlc = function(symbol, output, type){
   ###############################
   ############################### CHANGE NAMES
   colnames(df) = c("Date","Open","High","Low","Close")
+  assign("df.opens",df,.GlobalEnv)
   
   
   ###############################
@@ -379,6 +425,8 @@ predict.next.ohlc = function(symbol, output, type){
   
   ###############################
   ############################### REMOVE FIRST 20 ROWS AND FIRST 5 COLUMNS FOR INPUT. ALSO REMOVE LAST ROW
+  df.overlay.wdate = df[(nrow(df)-15):(nrow(df)-1),]
+  assign("df.overlay.wdate",df.overlay.wdate,.GlobalEnv)
   df = df[nrow(df)-1,]
   
   
@@ -391,37 +439,66 @@ predict.next.ohlc = function(symbol, output, type){
   prev.low.perc = (prev.low - prev.open) / prev.open * 100
   
   
-  
-  df = df[,-c(1:4)]
+  closes = df$Close
+  df = df[,-c(1:7)]
+  df.overlay = df.overlay.wdate[,-c(1:7)]
   
   df.m = as.matrix(df)
+  df.m.overlay = as.matrix(df.overlay)
   
-  bst.open = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("bst_",symbol,"_Open.rds"))
-  bst.high = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("bst_",symbol,"_High.rds"))
-  bst.low = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("bst_",symbol,"_Low.rds"))
-  bst.close = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("bst_",symbol,"_Close.rds"))
+  # bst.open = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("bst_",symbol,"_Open.rds"))
+  bst.high = readRDS(paste0("../bsts-8-31-2023/bst_",symbol,"_High.rds"))
+  bst.low = readRDS(paste0("../bsts-8-31-2023/bst_",symbol,"_Low.rds"))
+  bst.close = readRDS(paste0("../bsts-8-31-2023/bst_",symbol,"_Close.rds"))
+  
+  # bst.high = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("bst_",symbol,"_High.rds"))
+  # bst.low = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("bst_",symbol,"_Low.rds"))
+  # bst.close = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("bst_",symbol,"_Close.rds"))
   
   # bst.open = readRDS(paste0("../Forex.bsts/","bst_",symbol,"_Open.rds"))
   # bst.high = readRDS(paste0("../Forex.bsts/","bst_",symbol,"_High.rds"))
   # bst.low = readRDS(paste0("../Forex.bsts/","bst_",symbol,"_Low.rds"))
   # bst.close = readRDS(paste0("../Forex.bsts/","bst_",symbol,"_Close.rds"))
   
-  pred.open = predict(bst.open, df.m)
-  pred.high = predict(bst.high, df.m)
-  pred.low = predict(bst.low, df.m)
-  pred.close = predict(bst.close, df.m)
+  # pred.open.overlay = predict(bst.open, df.m.overlay)
+  pred.high.overlay.p = predict(bst.high, df.m.overlay) / 100
+  pred.low.overlay.p = predict(bst.low, df.m.overlay) / 100
+  pred.close.overlay.p = predict(bst.close, df.m.overlay) / 100
+  
+  pred.high.overlay = pred.high.overlay.p * df.opens$Open[(nrow(df.opens)-14):(nrow(df.opens))] + df.opens$Open[(nrow(df.opens)-14):(nrow(df.opens))]
+  pred.low.overlay = pred.low.overlay.p * df.opens$Open[(nrow(df.opens)-14):(nrow(df.opens))] + df.opens$Open[(nrow(df.opens)-14):(nrow(df.opens))]
+  pred.close.overlay = pred.close.overlay.p * df.opens$Open[(nrow(df.opens)-14):(nrow(df.opens))] + df.opens$Open[(nrow(df.opens)-14):(nrow(df.opens))]
+  
+  overlay.comb = data.frame(cbind(as.character(df.date.grab$date[(nrow(df.date.grab)-14):(nrow(df.date.grab))]),df.date.grab$open[(nrow(df.date.grab)-14):(nrow(df.date.grab))],pred.high.overlay,pred.low.overlay,pred.close.overlay))
+  colnames(overlay.comb) = c("date","open","high","low","close")
+  
+  overlay.comb$high[overlay.comb$high < overlay.comb$open] = overlay.comb$open[overlay.comb$high < overlay.comb$open]
+  overlay.comb$high[overlay.comb$high < overlay.comb$close] = overlay.comb$close[overlay.comb$high < overlay.comb$close]
+  
+  
+  overlay.comb$low[overlay.comb$low > overlay.comb$close] = overlay.comb$close[overlay.comb$low > overlay.comb$close]
+  overlay.comb$low[overlay.comb$low > overlay.comb$open] = overlay.comb$open[overlay.comb$low > overlay.comb$open]
+  
+  assign("overlay.comb",overlay.comb,.GlobalEnv)
+  
+  # pred.open = predict(bst.open, df.m)
+  p.change.high = predict(bst.high, df.m) / 100
+  p.change.low = predict(bst.low, df.m) / 100
+  p.change.close = predict(bst.close, df.m) / 100
+  
+
+  
+  pred.high = p.change.high * closes + closes
+  pred.low = p.change.low * closes + closes
+  pred.close = p.change.close * closes + closes
   
   if(pred.low >= prev.close){
     pred.low = prev.close
   }
   
-  p.change.high = round((pred.high - df$Close)/df$Close * 100, digits = 2)
-  p.change.low = round((pred.low - df$Close)/df$Close * 100, digits = 2)
-  p.change.close = round((pred.close - df$Close)/df$Close * 100, digits = 2)
-  
-  text.high = paste0("$",round(pred.high, digits = 5), "(",p.change.high,"%)")
-  text.low = paste0("$",round(pred.low, digits = 5), "(",p.change.low,"%)")
-  text.close = paste0("$",round(pred.close, digits = 5), "(",p.change.close,"%)")
+  text.high = paste0("$",round(pred.high, digits = 5), "(",round(p.change.high*100,2),"%)")
+  text.low = paste0("$",round(pred.low, digits = 5), "(",round(p.change.low*100,2),"%)")
+  text.close = paste0("$",round(pred.close, digits = 5), "(",round(p.change.close*100,2),"%)")
   
   if(type == "detail"){
     assign("text.high",text.high,.GlobalEnv)
@@ -436,6 +513,12 @@ predict.next.ohlc = function(symbol, output, type){
     assign("p.change.low",p.change.low,.GlobalEnv)
     assign("pred_Close",pred.close,.GlobalEnv)
     assign("p.change.close",p.change.close,.GlobalEnv)
+    
+    assign("pred.high.overlay",pred.high.overlay, .GlobalEnv)
+    assign("pred.low.overlay",pred.low.overlay, .GlobalEnv)
+    # assign("pred.open.overlay",pred.open.overlay, .GlobalEnv)
+    assign("pred.close.overlay",pred.close.overlay, .GlobalEnv)
+    
   }else{
     assign("pred_High.simple",pred.high,.GlobalEnv)
     assign("p.change.high.simple",p.change.high,.GlobalEnv)

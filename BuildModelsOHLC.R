@@ -16,7 +16,7 @@ file.names = str_replace(string = file.names, pattern = '.csv', replacement = ""
 ls.files = lapply(x, read.csv)
 
 for(i in 1:length(file.names)){
-  for(j in 2:5){
+  for(j in 3:5){
   df = ls.files[[i]]
   timeframe = str_match(string = file.names[i], pattern = "_(.*)")[,2]
   
@@ -29,7 +29,7 @@ for(i in 1:length(file.names)){
   
     ###############################
     ############################### ADD VECTOR OUTPUT FOR NEXT HIGH VALUE
-    NextOut = df[[j]]
+    NextOut = round((df[[j]] - df$Open) / df$Open * 100, digits = 2)
     NextOut[length(NextOut)+1] = NA
     NextOut = NextOut[-1]
     
@@ -37,7 +37,7 @@ for(i in 1:length(file.names)){
     ############################### ADD IN MOVING AVERAGES
     df$MA10 = NA
     df$MA20 = NA
-    
+
     for(k in 21:nrow(df)){
       df$MA10[k] = mean(df$Close[k-10:k])
       df$MA20[k] = mean(df$Close[k-20:k])
@@ -104,7 +104,7 @@ for(i in 1:length(file.names)){
     
     ###############################
     ############################### REMOVE FIRST 20 ROWS AND FIRST 5 COLUMNS FOR INPUT. ALSO REMOVE LAST ROW
-    df = df[-c(1:20,nrow(df)),-c(1:4)]
+    df = df[-c(1:20,nrow(df)),-c(1:7)]
     BreakL = BreakL[-c(1:20,length(BreakL))]
     BreakH = BreakH[-c(1:20,length(BreakH))]
     NextOut = NextOut[-c(1:20,length(NextOut))]
@@ -144,7 +144,7 @@ for(i in 1:length(file.names)){
     pred = predict(bst, test)
     
     compare = data.frame(cbind(outcome.test, pred))
-    saveRDS(compare, file = paste0("../bsts-8-18-2023/","compare_",file.names[i],"_",out.names[j-1],".rds"))
+    saveRDS(compare, file = paste0("../bsts-8-31-2023/","compare_",file.names[i],"_",out.names[j-1],".rds"))
     # 
     #   compare$residuals = compare$outcome.test - compare$pred
     #   dmean2 = sum((compare$outcome.test - mean(compare$outcome.test))^2)
@@ -157,7 +157,7 @@ for(i in 1:length(file.names)){
     #   mse = mean((compare$residuals^2))
     #   rmse = (mean((compare$residuals^2)))^(1/2)
     
-    saveRDS(bst, file = paste0("../bsts-8-18-2023/","bst_",file.names[i],"_",out.names[j-1],".rds"))
+    saveRDS(bst, file = paste0("../bsts-8-31-2023/","bst_",file.names[i],"_",out.names[j-1],".rds"))
     print(paste0(file.names[i],"_",out.names[j-1]))
   }
 }

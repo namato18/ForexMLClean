@@ -163,6 +163,9 @@ ui <- dashboardPage(
                 ),
                 box(title = "Live Candle Chart", solidHeader = TRUE, status = "danger",
                     plotlyOutput('candlestickPlotDetail')
+                ),
+                box(title = "Predictions Overlay", solidHeader = TRUE, status = "danger",
+                    plotlyOutput('candlestickPlotDetailOverlay')
                 )
               )
       ),
@@ -219,9 +222,9 @@ server <- function(input, output, session) {
   disable("percentIncrease")
   disable("predictionIncrease")
   
-  output$candlestickPlotSimple = renderPlotly(LivePlot(input$predictionPairSimple))
+  output$candlestickPlotSimple = renderPlotly(LivePlot(input$predictionPairSimple,"simple"))
   
-  output$candlestickPlotDetail = renderPlotly(LivePlot(input$predictionPairDetail))
+  output$candlestickPlotDetail = renderPlotly(LivePlot(input$predictionPairDetail,"simple"))
   
   
   observeEvent(input$predict, {
@@ -271,6 +274,9 @@ server <- function(input, output, session) {
   observeEvent(input$predictConfidenceDetail, {
     predict.next(input$predictionPairDetail, output, type = "detail")
     predict.next.ohlc(input$predictionPairDetail, output, type = "detail")
+    
+    output$candlestickPlotDetailOverlay = renderPlotly(LivePlot(input$predictionPairDetail,"overlay"))
+    
     
     output$predictedHigh = renderValueBox({
       valueBox(subtitle = "Predicted High",value = text.high, icon = icon("arrow-trend-up"), color = "green")
@@ -326,7 +332,7 @@ server <- function(input, output, session) {
       valueBox(subtitle = "F1 Score",value = f1, icon = icon("check"), color = "green")
     })
     output$rmse = renderValueBox({
-      valueBox(subtitle = "RMSE",value = rmse, icon = icon("check"), color = "green")
+      valueBox(subtitle = "RMSE",value = paste0(rmse,"%"), icon = icon("check"), color = "green")
     })
     output$current.price = renderValueBox({
       valueBox(subtitle = "Current Price",value = current.price, icon = icon("check"), color = "green")
