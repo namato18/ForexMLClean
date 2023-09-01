@@ -249,7 +249,7 @@ server <- function(input, output, session) {
   observeEvent(input$predictConfidenceSimple, {
     predict.next(input$predictionPairSimple, output, type = "simple")
     predict.next.ohlc(input$predictionPairSimple, output, type = "simple")
-    MakePrediction(p.change.close.simple,p.change.high.simple,p.change.low.simple,bh.pred.simple,bl.pred.simple,perc25.pred.simple,prev.high.perc,prev.low.perc)
+    MakePrediction(p.change.close.simple,p.change.high.simple,p.change.low.simple,bh.pred.simple,bl.pred.simple,perc25.pred.simple,prev.high.perc,prev.low.perc,up.trend,down.trend,"single")
     
     if(pred.count < 0){
       output$prediction = renderValueBox({
@@ -268,6 +268,7 @@ server <- function(input, output, session) {
   observeEvent(input$predictConfidenceDetail, {
     predict.next(input$predictionPairDetail, output, type = "detail")
     predict.next.ohlc(input$predictionPairDetail, output, type = "detail")
+    
     
     output$candlestickPlotDetailOverlay = renderPlotly(LivePlot(input$predictionPairDetail,"overlay"))
     

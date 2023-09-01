@@ -38,8 +38,8 @@ GetAccuracy = function(filename, prediction, target){
     assign("rmse",NULL,.GlobalEnv)
     assign("current.price",NULL,.GlobalEnv)
   }else{
-    # compare = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("compare_",filename,"_",prediction,".rds"))
-    compare = readRDS(paste0("../bsts-8-31-2023/compare_",filename,"_",prediction,".rds"))
+    compare = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts2", object = paste0("compare_",filename,"_",prediction,".rds"))
+    # compare = readRDS(paste0("../bsts-8-31-2023/compare_",filename,"_",prediction,".rds"))
     
     
     compare$error.sq = (compare$pred - compare$outcome.test)^2
@@ -88,7 +88,7 @@ LivePlot = function(symbol,type){
   pair = str_match(string = symbol, pattern = "(.*)_")[,2]
   timeframe = str_match(string = symbol, pattern = "_(.*)")[,2]
   
-  df1 = riingo_fx_prices(pair, start_date = Sys.Date() - 21, end_date = Sys.Date(), resample_frequency = timeframe)
+  df1 = riingo_fx_prices(pair, start_date = Sys.Date() - 100, end_date = Sys.Date(), resample_frequency = timeframe)
   df1 = df1[-nrow(df1),]
   df2 = httr::GET(paste0("https://api.tiingo.com/tiingo/fx/",pair,"/prices?resampleFreq=",timeframe,"&token=6fbd6ce7c9e035489f6238bfab127fcedbe34ac2"))
   request_char = rawToChar(df2$content)
@@ -117,8 +117,12 @@ LivePlot = function(symbol,type){
   if(type == "simple"){
     return(fig)
   }else{
+    
+    MakePrediction(pred.close.overlay.p,pred.high.overlay.p,pred.low.overlay.p,pred.BH.overlay,pred.BL.overlay,pred.25.overlay,prev.high.overlay,prev.low.overlay,up.trend.overlay,down.trend.overlay,"multiple")
+    
     i <- list(line = list(color = 'blue'))
     d <- list(line = list(color = 'orange'))
+    
     
     fig = add_trace(
       fig,
@@ -128,6 +132,13 @@ LivePlot = function(symbol,type){
       high = ~high, low = ~low,
       increasing = i, decreasing = d
     )
+    # fig = fig %>% add_annotations(x = overlay.comb$date,
+    #                                   y = overlay.comb$high,
+    #                                   text = pred.count.overlay)
+    
+
+
+
     return(fig)
   }
 
@@ -170,10 +181,10 @@ predict.next = function(symbol, output, target = 0.25, type){
   # for(i in 1:length(predictions)){
   #   prediction = predictions[i]
     
-    symbol = "AUDUSD_1day"
-    prediction = "BreakL"
-    pair = "AUDUSD"
-    timeframe = "1day"
+    # symbol = "AUDUSD_1hour"
+    # prediction = "BreakL"
+    # pair = "AUDUSD"
+    # timeframe = "1hour"
     
     df1 = riingo_fx_prices(pair, start_date = Sys.Date() - 100, end_date = Sys.Date(), resample_frequency = timeframe)
     df1 = df1[-nrow(df1),]
@@ -226,11 +237,17 @@ predict.next = function(symbol, output, target = 0.25, type){
     
     down.trend.df.xts = data.frame(down.trend(df.xts))
     up.trend.df.xts = data.frame(up.trend(df.xts))
-    down.trend.df.xts = down.trend.df.xts$Down.Trend[nrow(down.trend.df.xts)]
-    up.trend.df.xts = up.trend.df.xts$Up.Trend[nrow(up.trend.df.xts)]
+    down.trend.df.xts.obj = down.trend.df.xts$Down.Trend[nrow(down.trend.df.xts)-1]
+    up.trend.df.xts.obj = up.trend.df.xts$Up.Trend[nrow(up.trend.df.xts)-1]
     
-    assign("up.trend",up.trend.df.xts,.GlobalEnv)
-    assign("down.trend",down.trend.df.xts,.GlobalEnv)
+    up.trend.df.xts.obj.overlay = up.trend.df.xts$Up.Trend[(nrow(up.trend.df.xts)-30):(nrow(up.trend.df.xts)-1)]
+    down.trend.df.xts.obj.overlay = down.trend.df.xts$Down.Trend[(nrow(up.trend.df.xts)-30):(nrow(down.trend.df.xts)-1)]
+    
+    assign("up.trend.overlay",up.trend.df.xts.obj.overlay,.GlobalEnv)
+    assign("down.trend.overlay",down.trend.df.xts.obj.overlay, .GlobalEnv)
+    
+    assign("up.trend",up.trend.df.xts.obj,.GlobalEnv)
+    assign("down.trend",down.trend.df.xts.obj,.GlobalEnv)
     
     UpTrend = as.data.frame(up.trend(df.xts))$`Up Trend`
     DownTrend = as.data.frame(down.trend(df.xts))$`Down Trend`
@@ -276,7 +293,7 @@ predict.next = function(symbol, output, target = 0.25, type){
     ############################### REMOVE FIRST 20 ROWS AND FIRST 5 COLUMNS FOR INPUT. ALSO GET LAST ROW
     
     # df = df[-c(1:20,nrow(df)),]
-    df.overlay.wdate = df[(nrow(df)-15):(nrow(df)-1),]
+    df.overlay.wdate = df[(nrow(df)-30):(nrow(df)-1),]
     
     df = df[nrow(df)-1,]
     
@@ -315,8 +332,8 @@ predict.next = function(symbol, output, target = 0.25, type){
     pred.BL.overlay = round(predict(bst.BL, df.m.overlay), digits = 3)
     pred.25.overlay = round(predict(bst.25, df.m.overlay), digits = 3)
     
-    prev.low.overlay = df.overlay.wdate$Low
-    prev.high.overlay = df.overlay.wdate$High
+    prev.low.overlay = (df.overlay.wdate$Low - df.overlay.wdate$Open) / df.overlay.wdate$Open * 100
+    prev.high.overlay = (df.overlay.wdate$High - df.overlay.wdate$Open) / df.overlay.wdate$Open * 100
     
     # assign(paste0("pred_",prediction),pred,.GlobalEnv)
     
@@ -354,12 +371,12 @@ predict.next.ohlc = function(symbol, output, type){
   pair = str_match(string = symbol, pattern = "(.*)_")[,2]
   timeframe = str_match(string = symbol, pattern = "_(.*)")[,2]
   
-  # symbol = "AUDUSD_1day"
+  # symbol = "AUDUSD_1hour"
   # prediction = "BreakH"
   # pair = "AUDUSD"
-  # timeframe = "1day"
+  # timeframe = "1hour"
   
-  df1 = riingo_fx_prices(pair, start_date = Sys.Date() - 30, end_date = Sys.Date(), resample_frequency = timeframe)
+  df1 = riingo_fx_prices(pair, start_date = Sys.Date() - 100, end_date = Sys.Date(), resample_frequency = timeframe)
   df1 = df1[-nrow(df1),]
   df2 = httr::GET(paste0("https://api.tiingo.com/tiingo/fx/",pair,"/prices?resampleFreq=",timeframe,"&token=6fbd6ce7c9e035489f6238bfab127fcedbe34ac2"))
   request_char = rawToChar(df2$content)
@@ -425,7 +442,7 @@ predict.next.ohlc = function(symbol, output, type){
   
   ###############################
   ############################### REMOVE FIRST 20 ROWS AND FIRST 5 COLUMNS FOR INPUT. ALSO REMOVE LAST ROW
-  df.overlay.wdate = df[(nrow(df)-15):(nrow(df)-1),]
+  df.overlay.wdate = df[(nrow(df)-30):(nrow(df)-1),]
   assign("df.overlay.wdate",df.overlay.wdate,.GlobalEnv)
   df = df[nrow(df)-1,]
   
@@ -447,13 +464,13 @@ predict.next.ohlc = function(symbol, output, type){
   df.m.overlay = as.matrix(df.overlay)
   
   # bst.open = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("bst_",symbol,"_Open.rds"))
-  bst.high = readRDS(paste0("../bsts-8-31-2023/bst_",symbol,"_High.rds"))
-  bst.low = readRDS(paste0("../bsts-8-31-2023/bst_",symbol,"_Low.rds"))
-  bst.close = readRDS(paste0("../bsts-8-31-2023/bst_",symbol,"_Close.rds"))
+  # bst.high = readRDS(paste0("../bsts-8-31-2023/bst_",symbol,"_High.rds"))
+  # bst.low = readRDS(paste0("../bsts-8-31-2023/bst_",symbol,"_Low.rds"))
+  # bst.close = readRDS(paste0("../bsts-8-31-2023/bst_",symbol,"_Close.rds"))
   
-  # bst.high = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("bst_",symbol,"_High.rds"))
-  # bst.low = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("bst_",symbol,"_Low.rds"))
-  # bst.close = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts", object = paste0("bst_",symbol,"_Close.rds"))
+  bst.high = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts2", object = paste0("bst_",symbol,"_High.rds"))
+  bst.low = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts2", object = paste0("bst_",symbol,"_Low.rds"))
+  bst.close = s3read_using(FUN = readRDS, bucket = "cryptomlbucket/FXCleanBoosts2", object = paste0("bst_",symbol,"_Close.rds"))
   
   # bst.open = readRDS(paste0("../Forex.bsts/","bst_",symbol,"_Open.rds"))
   # bst.high = readRDS(paste0("../Forex.bsts/","bst_",symbol,"_High.rds"))
@@ -465,11 +482,11 @@ predict.next.ohlc = function(symbol, output, type){
   pred.low.overlay.p = predict(bst.low, df.m.overlay) / 100
   pred.close.overlay.p = predict(bst.close, df.m.overlay) / 100
   
-  pred.high.overlay = pred.high.overlay.p * df.opens$Open[(nrow(df.opens)-14):(nrow(df.opens))] + df.opens$Open[(nrow(df.opens)-14):(nrow(df.opens))]
-  pred.low.overlay = pred.low.overlay.p * df.opens$Open[(nrow(df.opens)-14):(nrow(df.opens))] + df.opens$Open[(nrow(df.opens)-14):(nrow(df.opens))]
-  pred.close.overlay = pred.close.overlay.p * df.opens$Open[(nrow(df.opens)-14):(nrow(df.opens))] + df.opens$Open[(nrow(df.opens)-14):(nrow(df.opens))]
+  pred.high.overlay = pred.high.overlay.p * df.opens$Open[(nrow(df.opens)-29):(nrow(df.opens))] + df.opens$Open[(nrow(df.opens)-29):(nrow(df.opens))]
+  pred.low.overlay = pred.low.overlay.p * df.opens$Open[(nrow(df.opens)-29):(nrow(df.opens))] + df.opens$Open[(nrow(df.opens)-29):(nrow(df.opens))]
+  pred.close.overlay = pred.close.overlay.p * df.opens$Open[(nrow(df.opens)-29):(nrow(df.opens))] + df.opens$Open[(nrow(df.opens)-29):(nrow(df.opens))]
   
-  overlay.comb = data.frame(cbind(as.character(df.date.grab$date[(nrow(df.date.grab)-14):(nrow(df.date.grab))]),df.date.grab$open[(nrow(df.date.grab)-14):(nrow(df.date.grab))],pred.high.overlay,pred.low.overlay,pred.close.overlay))
+  overlay.comb = data.frame(cbind(as.character(df.date.grab$date[(nrow(df.date.grab)-29):(nrow(df.date.grab))]),df.date.grab$open[(nrow(df.date.grab)-29):(nrow(df.date.grab))],pred.high.overlay,pred.low.overlay,pred.close.overlay))
   colnames(overlay.comb) = c("date","open","high","low","close")
   
   overlay.comb$high[overlay.comb$high < overlay.comb$open] = overlay.comb$open[overlay.comb$high < overlay.comb$open]
@@ -519,6 +536,11 @@ predict.next.ohlc = function(symbol, output, type){
     # assign("pred.open.overlay",pred.open.overlay, .GlobalEnv)
     assign("pred.close.overlay",pred.close.overlay, .GlobalEnv)
     
+    assign("pred.high.overlay.p",pred.high.overlay.p * 100,.GlobalEnv)
+    assign("pred.low.overlay.p",pred.low.overlay.p * 100,.GlobalEnv)
+    assign("pred.close.overlay.p",pred.close.overlay.p * 100,.GlobalEnv)
+    
+    
   }else{
     assign("pred_High.simple",pred.high,.GlobalEnv)
     assign("p.change.high.simple",p.change.high,.GlobalEnv)
@@ -546,7 +568,7 @@ predict.next.ohlc = function(symbol, output, type){
 ##############################################################
 ##############################################################
 
-MakePrediction = function(perc.close, perc.high, perc.low, pred.bh, pred.bl, pred.perc1, prev.high.perc, prev.low.perc){
+MakePrediction = function(perc.close, perc.high, perc.low, pred.bh, pred.bl, pred.perc1, prev.high.perc, prev.low.perc,upTrend,downTrend,Type){
   # perc.close = p.change.close.simple
   # perc.high = p.change.high.simple
   # perc.low = p.change.low.simple
@@ -556,42 +578,56 @@ MakePrediction = function(perc.close, perc.high, perc.low, pred.bh, pred.bl, pre
   # prev.high.perc = prev.high.perc
   # prev.low.perc = prev.low.perc
   
-  pred.count = 0
+  pred.count.list = c()
+  for(i in 1:length(perc.close)){
+    pred.count = 0
+    
+    target.percentage.adjust.good = round(pred.perc1[i] * 0.8, digits = 1)
+    target.percentage.adjust.bad = round(pred.perc1[i] * 0.6, digits = 1)
+    
+    
+    #####################
+    ##################### ADD CONDITIONS FOR BAD
+    if((perc.low[i]*-1) > perc.high[i]){
+      pred.count = pred.count - 1
+    }
+    if(pred.perc1[i] < 0.5){
+      pred.count = pred.count - 1
+    }
+    if(pred.bl[i] > 0.5 & prev.low.perc[i]*-1 > target.percentage.adjust.bad){
+      pred.count = pred.count - 1
+    }
+    if(downTrend[i] == TRUE){
+      pred.count = pred.count - 1
+    }
+    
+    #####################
+    ##################### ADD CONDITIONS FOR GOOD
+    if((perc.low[i]*-1) < perc.high[i] & perc.high[i] > 1){
+      pred.count = pred.count + 1
+    }
+    if(pred.perc1[i] > 0.5){
+      pred.count = pred.count + 1
+    }
+    if(pred.bh[i] > 0.5 & prev.high.perc[i] > target.percentage.adjust.good){
+      pred.count = pred.count + 1
+    }
+    if(upTrend[i] == TRUE){
+      pred.count = pred.count + 1
+    }
+    
+    pred.count.list = c(pred.count.list,pred.count)
+  }
   
-  target.percentage.adjust.good = round(pred.perc1 * 0.8, digits = 1)
-  target.percentage.adjust.bad = round(pred.perc1 * 0.6, digits = 1)
+if(Type == "single"){
+  assign("pred.count",pred.count.list[1],.GlobalEnv)
+}else{
+  pred.count.list[pred.count.list > 0] = "BUY"
+  pred.count.list[pred.count.list <= 0] = "NO BUY"
   
+  assign("pred.count.overlay",pred.count.list,.GlobalEnv)
+}
   
-  #####################
-  ##################### ADD CONDITIONS FOR BAD
-  if((perc.low*-1) > perc.high){
-    pred.count = pred.count - 1
-  }
-  if(pred.perc1 < 0.5){
-    pred.count = pred.count - 1
-  }
-  if(pred.bl > 0.5 & prev.low.perc*-1 > target.percentage.adjust.bad){
-    pred.count = pred.count - 1
-  }
-  if(down.trend == TRUE){
-    pred.count = pred.count - 1
-  }
-  
-  #####################
-  ##################### ADD CONDITIONS FOR GOOD
-  if((perc.low*-1) < perc.high & perc.high > 1){
-    pred.count = pred.count + 1
-  }
-  if(pred.perc1 > 0.5){
-    pred.count = pred.count + 1
-  }
-  if(pred.bh > 0.5 & prev.high.perc > target.percentage.adjust.good){
-    pred.count = pred.count + 1
-  }
-  if(up.trend == TRUE){
-    pred.count = pred.count + 1
-  }
-  
-  assign("pred.count",pred.count,.GlobalEnv)
   
 }
+
