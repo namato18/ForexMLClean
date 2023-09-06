@@ -103,11 +103,17 @@ LivePlot = function(symbol,type){
   df = rbind(df1,df2)
   assign('df.date.grab',df,.GlobalEnv)
   
+  df30 = tail(df,30)
+  df30$open[30] = NA
+  df30$close[30] = NA
+  df30$high[30] = NA
+  df30$low[30] = NA
+  
   fig = plot_ly()
   
   fig = add_trace(
     fig,
-    data = tail(df,30),
+    data = df30,
     x = ~date, type="candlestick",
     open = ~open, close = ~close,
     high = ~high, low = ~low
